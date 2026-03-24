@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FX·AI" />
+<meta name="theme-color" content="#080c14" />
+<title>FX·AI — Personal Forex Dashboard</title>
+<link rel="manifest" href="#" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --green:#00c896;--blue:#0084ff;--red:#ff5050;--yellow:#f59e0b;
+    --bg:#080c14;--card:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.07);
+    --text:#e2e8f0;--muted:#888;--dim:#444;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(0,200,150,0.04),transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(0,120,255,0.04),transparent 60%);pointer-events:none;z-index:0}
+
+  /* HEADER */
+  header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(8,12,20,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+  .logo{font-family:'Space Mono',monospace;font-size:15px;color:var(--green);letter-spacing:2px;white-space:nowrap}
+  .logo span{color:var(--blue)}
+  nav{display:flex;gap:4px;flex-wrap:wrap}
+  .nav-btn{padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;transition:all .2s;background:transparent;color:var(--muted)}
+  .nav-btn.active{background:rgba(0,200,150,0.12);color:var(--green)}
+  .nav-btn:hover:not(.active){background:rgba(255,255,255,0.05);color:#ccc}
+  .ai-btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;transition:all .2s;white-space:nowrap}
+  .ai-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,200,150,0.3)}
+  .ai-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+  /* TICKER */
+  .ticker{background:rgba(0,0,0,0.3);border-top:1px solid var(--border);padding:7px 0;overflow:hidden;white-space:nowrap}
+  .ticker-inner{display:inline-flex;gap:36px;animation:scroll 28s linear infinite}
+  .ticker-item{font-family:'Space Mono',monospace;font-size:11px;color:#555}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+  /* MAIN */
+  main{padding:20px 24px;max-width:1400px;margin:0 auto;position:relative;z-index:1}
+  .tab{display:none}.tab.active{display:block}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden}
+  .stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,linear-gradient(90deg,var(--green),var(--blue)))}
+  .stat-label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .stat-value{font-family:'Space Mono',monospace;font-size:20px;font-weight:700}
+  .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+  /* GRID */
+  .content{display:grid;grid-template-columns:1fr 340px;gap:18px}
+  @media(max-width:900px){.content{grid-template-columns:1fr}}
+
+  /* SECTION TITLE */
+  .sec{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#555;margin-bottom:12px;font-weight:600}
+
+  /* PAIRS */
+  .pairs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  @media(max-width:500px){.pairs{grid-template-columns:1fr}}
+  .pair{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s}
+  .pair:hover{border-color:rgba(0,200,150,.3);background:rgba(0,200,150,.04);transform:translateY(-1px)}
+  .pair-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+  .pair-flags{font-size:18px;line-height:1}
+  .pair-name{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;margin-top:3px}
+  .pair-price{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;margin-bottom:3px}
+  .pair-chg{font-size:12px;font-weight:600}
+  .pair-bot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .trade-btn{padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;background:rgba(0,200,150,.15);color:var(--green);transition:all .15s}
+  .trade-btn:hover{background:var(--green);color:#000}
+
+  /* SVG sparklines */
+  svg.spark{display:block}
+
+  /* RISK RULES */
+  .risk{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:14px;margin-top:14px}
+  .risk-title{font-size:10px;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:700}
+  .risk-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#ccc;margin-bottom:6px;line-height:1.4}
+  .risk-row:last-child{margin:0}
+  .risk-key{color:var(--yellow);font-weight:600;min-width:88px}
+
+  /* RIGHT PANEL */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px}
+
+  /* GAUGES */
+  .gauges{display:flex;gap:10px;justify-content:space-around;margin-bottom:18px}
+  .gauge-wrap{text-align:center}
+  .gauge-lbl{font-size:10px;color:var(--muted);margin-top:3px}
+
+  /* POSITIONS */
+  .pos{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .pos:last-child{border:none}
+  .pos-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .pos-name{font-family:'Space Mono',monospace;font-size:12px;font-weight:700}
+  .badge{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
+  .badge.BUY{background:rgba(0,200,150,.15);color:var(--green)}
+  .badge.SELL{background:rgba(255,80,80,.15);color:var(--red)}
+  .bar-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:5px}
+  .bar-fill{height:100%;border-radius:2px;transition:width .3s}
+  .pos-meta{display:flex;justify-content:space-between;font-size:10px;color:#555}
+  .close-btn{padding:3px 9px;border-radius:5px;border:1px solid rgba(255,80,80,.3);background:transparent;color:var(--red);cursor:pointer;font-size:10px;font-family:'Space Mono',monospace;transition:all .15s}
+  .close-btn:hover{background:rgba(255,80,80,.1)}
+  .empty{text-align:center;padding:24px;color:var(--dim);font-size:12px;line-height:1.8}
+
+  /* ALERTS */
+  .alert{padding:7px 11px;border-radius:7px;font-size:11px;font-weight:500;margin-bottom:5px}
+  .alert.profit{background:rgba(0,200,150,.1);color:var(--green)}
+  .alert.loss{background:rgba(255,80,80,.1);color:#ff7070}
+  .alert.info{background:rgba(0,132,255,.1);color:#60a5fa}
+
+  /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+  .overlay.open{display:flex}
+  .modal{background:#0f1520;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:26px;width:100%;max-width:360px}
+  .modal-title{font-family:'Space Mono',monospace;font-size:15px;margin-bottom:18px;color:var(--green)}
+  .form-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:block}
+  .form-group{margin-bottom:14px}
+  input.form-in{width:100%;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#fff;font-family:'Space Mono',monospace;font-size:14px;outline:none}
+  input.form-in:focus{border-color:var(--green)}
+  .dir-row{display:flex;gap:8px}
+  .dir-opt{flex:1;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,.1);cursor:pointer;text-align:center;font-weight:700;font-size:12px;font-family:'Space Mono',monospace;transition:all .15s;background:transparent;color:var(--muted)}
+  .dir-opt.buy.on{background:rgba(0,200,150,.15);border-color:var(--green);color:var(--green)}
+  .dir-opt.sell.on{background:rgba(255,80,80,.15);border-color:var(--red);color:var(--red)}
+  .entry-price{font-family:'Space Mono',monospace;font-size:18px;color:var(--green);padding:8px 0}
+  .modal-rules{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.1);border-radius:8px;padding:12px;margin-top:4px}
+  .modal-rule{font-size:11px;color:#ccc;margin-bottom:5px;display:flex;gap:6px}
+  .modal-rule:last-child{margin:0}
+  .modal-btns{display:flex;gap:10px;margin-top:18px}
+  .btn-cancel{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px}
+  .btn-exec{flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;font-weight:700;font-family:'DM Sans',sans-serif;font-size:14px}
+
+  /* POSITIONS TAB */
+  .pos-table{display:grid;gap:10px}
+  .pos-row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;align-items:center;gap:16px}
+  @media(max-width:700px){.pos-row{grid-template-columns:1fr 1fr;gap:10px}}
+  .col-label{font-size:10px;color:#555;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+  .col-val{font-family:'Space Mono',monospace;font-size:12px;font-weight:700}
+  .col-sub{font-size:11px;color:var(--muted)}
+
+  /* AI TAB */
+  .ai-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px}
+  .ai-text{font-size:14px;line-height:1.8;color:#c8d4e8}
+  .ai-section{margin-bottom:4px}
+  .ai-header{color:var(--green);font-size:15px;font-weight:700;margin-top:20px;margin-bottom:8px}
+  .pulse{display:flex;gap:6px;align-items:center;padding:20px 0}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pls 1.2s ease-in-out infinite}
+  .dot:nth-child(2){animation-delay:.2s}
+  .dot:nth-child(3){animation-delay:.4s}
+  @keyframes pls{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  .disclaimer{margin-top:24px;padding:14px 16px;background:rgba(245,158,11,.05);border-radius:10px;border:1px solid rgba(245,158,11,.1);font-size:11px;color:var(--yellow)}
+  .ai-empty{text-align:center;padding:50px 0}
+  .ai-empty-icon{font-size:40px;margin-bottom:12px}
+  .ai-empty-text{color:#555;font-size:13px;line-height:1.8;margin-bottom:16px}
+
+  /* INSTALL BANNER */
+  .install-banner{display:none;position:fixed;bottom:20px;right:20px;z-index:300;background:#0f1520;border:1px solid rgba(0,200,150,.3);border-radius:14px;padding:16px 20px;max-width:280px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+  .install-banner h4{font-size:13px;color:var(--green);margin-bottom:6px}
+  .install-banner p{font-size:11px;color:#888;margin-bottom:12px;line-height:1.5}
+  .install-banner .btns{display:flex;gap:8px}
+  .install-banner button{padding:6px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px}
+  .btn-install{background:var(--green);color:#000;font-weight:700}
+  .btn-dismiss{background:rgba(255,255,255,.07);color:#888}
+
+  /* RING GAUGE */
+  .ring-svg{display:block;margin:0 auto}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">FX<span>·</span>AI <span style="color:#333;font-size:11px">/ PERSONAL DASHBOARD</span></div>
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Market</button>
+    <button class="nav-btn" onclick="switchTab('positions')">📂 Positions</button>
+    <button class="nav-btn" onclick="switchTab('ai')">🤖 AI Advisor</button>
+  </nav>
+  <button class="ai-btn" id="aiBtn" onclick="fetchAI()">✨ Get AI Analysis</button>
+</header>
+
+<!-- TICKER -->
+<div class="ticker"><div class="ticker-inner" id="ticker"></div></div>
+
+<main>
+
+<!-- ==================== DASHBOARD TAB ==================== -->
+<div class="tab active" id="tab-dashboard">
+  <div class="stats">
+    <div class="stat" style="--accent:linear-gradient(90deg,var(--green),#00a876)">
+      <div class="stat-label">Portfolio Value</div>
+      <div class="stat-value" style="color:var(--green)" id="s-portfolio">$10,000.00</div>
+      <div class="stat-sub" id="s-available">Available: $10,000.00</div>
+    </div>
+    <div class="stat" id="s-pnl-card">
+      <div class="stat-label">Unrealized P&L</div>
+      <div class="stat-value" id="s-pnl">$0.00</div>
+      <div class="stat-sub" id="s-pnl-pct">0.00% on invested</div>
+    </div>
+    <div class="stat" style="--accent:linear-gradient(90deg,var(--blue),#0060cc)">
+      <div class="stat-label">Open Positions</div>
+      <div class="stat-value" style="color:#60a5fa" id="s-positions">0</div>
+      <div class="stat-sub" id="s-invested">Invested: $0.00</div>
+    </div>
+    <div class="stat" style="--accent:linear-gradient(90deg,#a855f7,#7c3aed)">
+      <div class="stat-label">Monthly Target</div>
+      <div class="stat-value" style="color:#c084fc">15–20%</div>
+      <div class="stat-sub">Stop-loss at 25–30%</div>
+    </div>
+  </div>
+  <div class="content">
+    <div>
+      <div class="sec">Live Currency Pairs</div>
+      <div class="pairs" id="pairs-grid"></div>
+      <div class="risk">
+        <div class="risk-title">⚙️ Your Risk Rules (Active)</div>
+        <div class="risk-row"><span>🎯</span><span class="risk-key">Profit Target:</span><span>Take profit at +15% to +20%</span></div>
+        <div class="risk-row"><span>🛡️</span><span class="risk-key">Stop-Loss:</span><span>Auto-alert at −25%, hard cut at −30%</span></div>
+        <div class="risk-row"><span>📅</span><span class="risk-key">Horizon:</span><span>Monthly review & rebalance</span></div>
+        <div class="risk-row"><span>⚖️</span><span class="risk-key">Risk Level:</span><span>Moderate — max 30% per pair</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec">Portfolio Gauges</div>
+      <div class="gauges" id="gauges"></div>
+      <div class="sec">Open Positions</div>
+      <div class="panel" id="positions-panel"><div class="empty">No open positions.<br>Trade a pair to start.</div></div>
+      <div class="sec">Alerts</div>
+      <div class="panel" id="alerts-panel"><div class="empty">No alerts yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== POSITIONS TAB ==================== -->
+<div class="tab" id="tab-positions">
+  <div class="sec">All Open Positions</div>
+  <div id="pos-table-wrap"></div>
+</div>
+
+<!-- ==================== AI TAB ==================== -->
+<div class="tab" id="tab-ai">
+  <div class="sec">AI Market Advisor</div>
+  <div class="ai-panel" id="ai-panel">
+    <div class="ai-empty">
+      <div class="ai-empty-icon">🤖</div>
+      <div class="ai-empty-text">Click <strong>Get AI Analysis</strong> to receive your<br>personalised monthly forex strategy.</div>
+      <button class="ai-btn" onclick="fetchAI()">✨ Analyse Now</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- TRADE MODAL -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-pair">Trade EUR/USD</div>
+    <div class="form-group">
+      <label class="form-lbl">Direction</label>
+      <div class="dir-row">
+        <button class="dir-opt buy on" id="btn-buy" onclick="setDir('BUY')">BUY</button>
+        <button class="dir-opt sell" id="btn-sell" onclick="setDir('SELL')">SELL</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">Amount (USD)</label>
+      <input type="number" class="form-in" id="trade-amt" value="1000" min="100" />
+      <div style="font-size:10px;color:#555;margin-top:4px" id="bal-hint">Available: $10,000.00</div>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">Entry Price</label>
+      <div class="entry-price" id="entry-price">—</div>
+    </div>
+    <div class="modal-rules">
+      <div style="font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:8px">AUTO RULES APPLIED</div>
+      <div class="modal-rule"><span>🎯</span><span id="rule-profit">Take profit alert: +15%</span></div>
+      <div class="modal-rule"><span>⚠️</span><span id="rule-loss">Stop-loss alert: −25%</span></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-exec" onclick="executeTrade()">Execute Trade</button>
+    </div>
+  </div>
+</div>
+
+<!-- PWA INSTALL BANNER -->
+<div class="install-banner" id="install-banner">
+  <h4>📱 Install as App</h4>
+  <p>Add FX·AI to your home screen for quick access, just like a native app.</p>
+  <div class="btns">
+    <button class="btn-install" onclick="installPWA()">Install</button>
+    <button class="btn-dismiss" onclick="dismissInstall()">Later</button>
+  </div>
+</div>
+
+<script>
+// ───────── DATA ─────────
+const PAIRS = [
+  {pair:"EUR/USD",base:1.0842,f1:"🇪🇺",f2:"🇺🇸"},
+  {pair:"GBP/USD",base:1.2634,f1:"🇬🇧",f2:"🇺🇸"},
+  {pair:"USD/JPY",base:149.82,f1:"🇺🇸",f2:"🇯🇵"},
+  {pair:"AUD/USD",base:0.6521,f1:"🇦🇺",f2:"🇺🇸"},
+  {pair:"USD/CHF",base:0.9012,f1:"🇺🇸",f2:"🇨🇭"},
+  {pair:"USD/CAD",base:1.3641,f1:"🇺🇸",f2:"🇨🇦"},
+];
+
+let prices = PAIRS.map(p=>({...p,current:p.base,prev:p.base,spark:genSpark(p.base)}));
+let balance = 10000;
+let positions = [];
+let alerts = [];
+let tradeDir = "BUY";
+let tradePair = null;
+
+function rand(min,max){return Math.random()*(max-min)+min}
+function simPrice(b){return +(b*(1+(Math.random()-.48)*.002)).toFixed(4)}
+function genSpark(b,n=20){let p=b;return Array.from({length:n},()=>{p=+(p*(1+(Math.random()-.49)*.003)).toFixed(4);return p})}
+
+// ───────── TABS ─────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  const map = {dashboard:0,positions:1,ai:2};
+  btns[map[name]].classList.add('active');
+  if(name==='positions') renderPosTable();
+}
+
+// ───────── SPARKLINE SVG ─────────
+function sparkSVG(data,color){
+  const w=78,h=28;
+  const min=Math.min(...data),max=Math.max(...data),range=max-min||.0001;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*w},${h-((v-min)/range)*h}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+}
+
+// ───────── RING GAUGE ─────────
+function ringGauge(value,max,color,label){
+  const pct=Math.min(value/max,1),r=26,cx=34,cy=34,circ=2*Math.PI*r;
+  const dash=pct*circ;
+  return `<div class="gauge-wrap">
+    <svg class="ring-svg" width="68" height="68">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="5"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="5"
+        stroke-dasharray="${dash} ${circ}" stroke-linecap="round"
+        transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dasharray .5s"/>
+      <text x="${cx}" y="${cy+4}" text-anchor="middle" fill="white" font-size="10" font-weight="700" font-family="Space Mono">${Math.round(pct*100)}%</text>
+    </svg>
+    <div class="gauge-lbl">${label}</div>
+  </div>`;
+}
+
+// ───────── RENDER PAIRS ─────────
+function renderPairs(){
+  const grid = document.getElementById('pairs-grid');
+  grid.innerHTML = prices.map(p=>{
+    const chg=(((p.current-p.prev)/p.prev)*100).toFixed(3);
+    const up=p.current>=p.prev;
+    const col=up?'#00c896':'#ff5050';
+    return `<div class="pair" onclick="openTrade('${p.pair}')">
+      <div class="pair-top">
+        <div>
+          <div class="pair-flags">${p.f1}${p.f2}</div>
+          <div class="pair-name">${p.pair}</div>
+        </div>
+        ${sparkSVG(p.spark,col)}
+      </div>
+      <div>
+        <div class="pair-price" id="price-${p.pair.replace('/','')}" style="color:${col}">${p.current}</div>
+        <div class="pair-chg" style="color:${col}">${up?'▲':'▼'} ${Math.abs(chg)}%</div>
+      </div>
+      <div class="pair-bot">
+        <span style="font-size:10px;color:#444">${p.pair}</span>
+        <button class="trade-btn" onclick="event.stopPropagation();openTrade('${p.pair}')">TRADE</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ───────── RENDER TICKER ─────────
+function renderTicker(){
+  const all=[...prices,...prices];
+  document.getElementById('ticker').innerHTML=all.map(p=>{
+    const chg=(((p.current-p.base)/p.base)*100).toFixed(3);
+    const c=chg>=0?'#00c896':'#ff5050';
+    return `<span class="ticker-item">${p.pair} <span style="color:${c}">${p.current} (${chg>=0?'+':''}${chg}%)</span></span>`;
+  }).join('');
+}
+
+// ───────── RENDER STATS ─────────
+function renderStats(){
+  const totalPnl=positions.reduce((s,p)=>s+(p.pnlAmt||0),0);
+  const totalInvested=positions.reduce((s,p)=>s+p.amount,0);
+  const portfolio=balance+totalInvested+totalPnl;
+  const pnlPct=totalInvested>0?(totalPnl/totalInvested)*100:0;
+  document.getElementById('s-portfolio').textContent=`$${portfolio.toFixed(2)}`;
+  document.getElementById('s-available').textContent=`Available: $${balance.toFixed(2)}`;
+  document.getElementById('s-pnl').textContent=`${totalPnl>=0?'+':''}$${totalPnl.toFixed(2)}`;
+  document.getElementById('s-pnl').style.color=totalPnl>=0?'#00c896':'#ff5050';
+  document.getElementById('s-pnl-pct').textContent=`${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}% on invested`;
+  document.getElementById('s-pnl-card').style.setProperty('--accent',`linear-gradient(90deg,${totalPnl>=0?'#00c896':'#ff5050'},transparent)`);
+  document.getElementById('s-positions').textContent=positions.length;
+  document.getElementById('s-invested').textContent=`Invested: $${totalInvested.toFixed(2)}`;
+  // gauges
+  document.getElementById('gauges').innerHTML=
+    ringGauge(Math.max(0,pnlPct),20,'#00c896','Profit %')+
+    ringGauge(Math.max(0,-pnlPct),30,'#ff5050','Loss %')+
+    ringGauge(totalInvested,portfolio||1,'#0084ff','Exposure');
+}
+
+// ───────── RENDER POSITIONS ─────────
+function renderPositions(){
+  const el=document.getElementById('positions-panel');
+  if(!positions.length){el.innerHTML='<div class="empty">No open positions.<br>Trade a pair to start.</div>';return;}
+  el.innerHTML=positions.map(pos=>{
+    const isP=(pos.pnlPct||0)>=0;
+    const bar=Math.min(Math.abs(pos.pnlPct||0)/20*100,100);
+    return `<div class="pos">
+      <div class="pos-top">
+        <div style="display:flex;gap:7px;align-items:center">
+          <span class="pos-name">${pos.pair}</span>
+          <span class="badge ${pos.direction}">${pos.direction}</span>
+        </div>
+        <button class="close-btn" onclick="closePos(${pos.id})">CLOSE</button>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${bar}%;background:${isP?'#00c896':'#ff5050'}"></div></div>
+      <div class="pos-meta">
+        <span>@${pos.entryPrice}</span>
+        <span style="color:${isP?'#00c896':'#ff5050'};font-weight:600">${isP?'+':''}${(pos.pnlPct||0).toFixed(2)}% / ${isP?'+':''}$${(pos.pnlAmt||0).toFixed(2)}</span>
+        <span>$${pos.amount}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPosTable(){
+  const el=document.getElementById('pos-table-wrap');
+  if(!positions.length){el.innerHTML='<div class="ai-panel"><div class="empty" style="padding:40px">No open positions. Go to Market tab and click TRADE.</div></div>';return;}
+  el.innerHTML='<div class="pos-table">'+positions.map(pos=>{
+    const isP=(pos.pnlPct||0)>=0;
+    return `<div class="pos-row">
+      <div><div class="col-label">Pair</div><div class="col-val">${pos.pair}</div><span class="badge ${pos.direction}" style="margin-top:4px;display:inline-block">${pos.direction}</span></div>
+      <div><div class="col-label">Entry / Current</div><div class="col-val">${pos.entryPrice}</div><div class="col-val" style="color:${isP?'#00c896':'#ff5050'}">${(pos.currentPrice||pos.entryPrice).toFixed(4)}</div></div>
+      <div><div class="col-label">Invested</div><div class="col-val">$${pos.amount}</div><div class="col-sub">${pos.openedAt}</div></div>
+      <div><div class="col-label">P&L</div><div class="col-val" style="color:${isP?'#00c896':'#ff5050'};font-size:14px">${isP?'+':''}${(pos.pnlPct||0).toFixed(2)}%</div><div class="col-sub" style="color:${isP?'#00c896':'#ff5050'}">${isP?'+':''}$${(pos.pnlAmt||0).toFixed(2)}</div></div>
+      <button class="close-btn" style="padding:8px 14px" onclick="closePos(${pos.id});renderPosTable()">CLOSE</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ───────── ALERTS ─────────
+function addAlert(type,msg){
+  alerts=[...alerts.slice(-4),{type,msg,id:Date.now()}];
+  renderAlerts();
+}
+function renderAlerts(){
+  const el=document.getElementById('alerts-panel');
+  if(!alerts.length){el.innerHTML='<div class="empty">No alerts yet.</div>';return;}
+  el.innerHTML=[...alerts].reverse().map(a=>`<div class="alert ${a.type}">${a.msg}</div>`).join('');
+}
+
+// ───────── TRADE MODAL ─────────
+function openTrade(pair){
+  tradePair=pair;
+  tradeDir='BUY';
+  document.getElementById('modal-pair').textContent='Trade '+pair;
+  document.getElementById('btn-buy').classList.add('on');
+  document.getElementById('btn-sell').classList.remove('on');
+  updateModalPrice();
+  document.getElementById('bal-hint').textContent=`Available: $${balance.toFixed(2)}`;
+  document.getElementById('modal').classList.add('open');
+}
+function updateModalPrice(){
+  const p=prices.find(x=>x.pair===tradePair);
+  if(!p)return;
+  document.getElementById('entry-price').textContent=p.current;
+  const amt=+document.getElementById('trade-amt').value||1000;
+  document.getElementById('rule-profit').textContent=`Take profit alert: +15% ($${(amt*.15).toFixed(2)})`;
+  document.getElementById('rule-loss').textContent=`Stop-loss alert: −25% (−$${(amt*.25).toFixed(2)})`;
+}
+document.getElementById('trade-amt').addEventListener('input',updateModalPrice);
+function setDir(d){
+  tradeDir=d;
+  document.getElementById('btn-buy').classList.toggle('on',d==='BUY');
+  document.getElementById('btn-sell').classList.toggle('on',d==='SELL');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function executeTrade(){
+  const amt=+document.getElementById('trade-amt').value;
+  if(!amt||amt>balance){addAlert('loss','⚠️ Insufficient balance!');closeModal();return;}
+  const p=prices.find(x=>x.pair===tradePair);
+  const pos={id:Date.now(),pair:tradePair,direction:tradeDir,amount:amt,entryPrice:p.current,currentPrice:p.current,pnlPct:0,pnlAmt:0,openedAt:new Date().toLocaleTimeString()};
+  positions.push(pos);
+  balance-=amt;
+  addAlert('info',`✅ ${tradeDir} ${tradePair} opened at ${p.current}`);
+  closeModal();
+  renderStats();renderPositions();
+}
+function closePos(id){
+  const pos=positions.find(p=>p.id===id);
+  if(!pos)return;
+  balance+=pos.amount+(pos.pnlAmt||0);
+  const isP=(pos.pnlAmt||0)>=0;
+  addAlert(isP?'profit':'loss',`${isP?'✅':'❌'} Closed ${pos.pair} — ${isP?'+':''}$${(pos.pnlAmt||0).toFixed(2)}`);
+  positions=positions.filter(p=>p.id!==id);
+  renderStats();renderPositions();
+}
+
+// ───────── PRICE UPDATE LOOP ─────────
+setInterval(()=>{
+  prices=prices.map(p=>{
+    const np=simPrice(p.current);
+    return{...p,prev:p.current,current:np,spark:[...p.spark.slice(1),np]};
+  });
+  // update live PnL
+  positions=positions.map(pos=>{
+    const lp=prices.find(p=>p.pair===pos.pair)?.current||pos.entryPrice;
+    const pPct=pos.direction==='BUY'?((lp-pos.entryPrice)/pos.entryPrice)*100:((pos.entryPrice-lp)/pos.entryPrice)*100;
+    const pAmt=(pos.amount*pPct)/100;
+    if(pPct>=15&&!pos.alertedProfit){pos.alertedProfit=true;addAlert('profit',`🎯 ${pos.pair} hit +15% target!`);}
+    if(pPct<=-25&&!pos.alertedLoss){pos.alertedLoss=true;addAlert('loss',`⚠️ ${pos.pair} hit −25% stop-loss!`);}
+    return{...pos,currentPrice:lp,pnlPct:pPct,pnlAmt:pAmt};
+  });
+  renderPairs();renderTicker();renderStats();renderPositions();
+},2000);
+
+// ───────── AI ANALYSIS ─────────
+async function fetchAI(){
+  switchTab('ai');
+  document.getElementById('aiBtn').disabled=true;
+  document.getElementById('aiBtn').textContent='⏳ Analysing...';
+  document.getElementById('ai-panel').innerHTML=`<div class="pulse"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="font-size:13px;color:#555;margin-left:8px">Analysing live market + global factors…</span></div>`;
+  const snap=prices.map(p=>{const c=(((p.current-p.base)/p.base)*100).toFixed(3);return`${p.pair}:${p.current}(${c}%)`}).join(', ');
+  const posSnap=positions.length?positions.map(p=>`${p.pair} ${p.direction} $${p.amount} @${p.entryPrice} PnL:${(p.pnlPct||0).toFixed(2)}%`).join('; '):'No open positions';
+  const totalPnl=positions.reduce((s,p)=>s+(p.pnlAmt||0),0);
+  const totalInvested=positions.reduce((s,p)=>s+p.amount,0);
+  const portfolio=balance+totalInvested+totalPnl;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:`You are a professional forex trading advisor. Analyse the market and give actionable advice.
+The user's strategy: moderate risk, 15-20% profit target per month, 25-30% max loss cutoff.
+Format your response with these exact section headers (include the emoji):
+📊 MARKET OVERVIEW
+🌍 GEOPOLITICAL RISKS
+💡 TOP OPPORTUNITIES
+⚠️ RISK WARNINGS
+🎯 MONTHLY STRATEGY
+Keep each section to 2-3 lines. Be specific and direct.`,
+        messages:[{role:'user',content:`Market: ${snap}. Positions: ${posSnap}. Portfolio: $${portfolio.toFixed(2)}. Give monthly forex strategy.`}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content?.map(c=>c.text||'').join('\n')||'Analysis unavailable.';
+    const lines=text.split('\n');
+    const html=lines.map(l=>{
+      const isH=l.startsWith('📊')||l.startsWith('🌍')||l.startsWith('💡')||l.startsWith('⚠️')||l.startsWith('🎯');
+      if(!l.trim())return'';
+      return`<div class="${isH?'ai-header':'ai-section'}">${l}</div>`;
+    }).join('');
+    document.getElementById('ai-panel').innerHTML=`<div class="ai-text">${html}</div><div class="disclaimer">⚠️ Disclaimer: AI-generated analysis for educational purposes only. Forex trading carries significant risk. Always do your own research before investing.</div>`;
+  }catch(e){
+    document.getElementById('ai-panel').innerHTML=`<div class="empty" style="padding:30px">⚠️ Could not connect to AI. Check your internet connection and try again.</div>`;
+  }
+  document.getElementById('aiBtn').disabled=false;
+  document.getElementById('aiBtn').textContent='✨ Get AI Analysis';
+}
+
+// ───────── PWA INSTALL ─────────
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').style.display='block';
+});
+function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.then(()=>{deferredPrompt=null;dismissInstall();});}}
+function dismissInstall(){document.getElementById('install-banner').style.display='none';}
+
+// ───────── INIT ─────────
+renderPairs();renderTicker();renderStats();renderPositions();renderAlerts();
+</script>
+
+<!-- PWA SERVICE WORKER REGISTRATION -->
+<script>
+if('serviceWorker' in navigator){
+  // Inline service worker via blob for single-file PWA
+  const swCode=`
+    const CACHE='fxai-v1';
+    const ASSETS=['/'];
+    self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+    self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+  `;
+  const blob=new Blob([swCode],{type:'application/javascript'});
+  const url=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+</script>
+
+<!-- INLINE MANIFEST for PWA -->
+<script>
+const manifest={
+  name:'FX·AI Forex Dashboard',short_name:'FX·AI',
+  description:'Personal AI-powered Forex Trading Dashboard',
+  start_url:'.',display:'standalone',
+  background_color:'#080c14',theme_color:'#080c14',
+  icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23080c14"/><text y=".9em" font-size="80" x="10">📈</text></svg>',sizes:'any',type:'image/svg+xml'}]
+};
+const mBlob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+const mUrl=URL.createObjectURL(mBlob);
+const link=document.createElement('link');
+link.rel='manifest';link.href=mUrl;
+document.head.appendChild(link);
+</script>
+</body>
+</html>
